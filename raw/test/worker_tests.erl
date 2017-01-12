@@ -20,5 +20,24 @@ approx_test() ->
   ?assert(3.14 < Pi),
   ?assert(3.15 > Pi).
 
+process_test() ->
+  Pid = worker:start(),
+  NrOfElements = 10000,
+  Start = 0,
+  From = self(),
+  Pid ! {work, From, Start, NrOfElements},
+  receive
+    {result, Approx} ->
+      ?assert(3.14 < Approx),
+      ?assert(3.15 > Approx)
+  after 6000 ->
+    fail()
+  end.
+
+fail() ->
+  erlang:error({assertException,
+    [{module, ?MODULE},
+      {line, ?LINE}]}).
+
 closeTo(Expected, Actual, Eps) ->
   ?assert(abs(Expected - Actual) < Eps).

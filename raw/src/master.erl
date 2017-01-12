@@ -34,7 +34,7 @@ loop(State, Pi, NrOfResults) ->
   receive
     calculate ->
       Workers = createWorkers(State#state.nrOfWorkers),
-      broadcastWork(State#state.nrOfElements, State#state.nrOfMessages, Workers, []),
+      broadcastWork(State#state.nrOfElements, 0, State#state.nrOfMessages, Workers, []),
       loop(State#state{workers = Workers}, Pi, NrOfResults);
 
     {result, Value} ->
@@ -76,13 +76,13 @@ createWorkers(Remaining, Workers) ->
 createWorker() ->
   worker:start().
 
-broadcastWork(_NrOfElements, 0, _WorkersUnused, _WorkersUsed) ->
+broadcastWork(_NrOfElements, NrOfMessages, NrOfMessages, _WorkersUnused, _WorkersUsed) ->
   ok;
-broadcastWork(NrOfElements, NrOfMessages, [], WorkersUsed) -> % no more workers, round-robin them and continue
-  broadcastWork(NrOfElements, NrOfMessages, lists:reverse(WorkersUsed), []);
-broadcastWork(NrOfElements, NrOfMessages, [Worker | Unused], WorkersUsed) ->
-  Worker ! {work, self(), NrOfMessages * NrOfElements, NrOfElements},
-  broadcastWork(NrOfElements, NrOfMessages - 1, Unused, [Worker | WorkersUsed]).
+broadcastWork(NrOfElements, I, NrOfMessages, [], WorkersUsed) -> % no more workers, round-robin them and continue
+  broadcastWork(NrOfElements, I, NrOfMessages, lists:reverse(WorkersUsed), []);
+broadcastWork(NrOfElements, I, NrOfMessages, [Worker | Unused], WorkersUsed) ->
+  Worker ! {work, self(), I * NrOfElements, NrOfElements},
+  broadcastWork(NrOfElements, I + 1, NrOfMessages, Unused, [Worker | WorkersUsed]).
 
 stopWorkers([]) ->
   ok;
