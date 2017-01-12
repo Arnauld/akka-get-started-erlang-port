@@ -18,7 +18,12 @@
 %% ------------------------------------------------------------------
 %% API Function Definitions
 %% ------------------------------------------------------------------
-start(NrOfWorkers, NrOfMessages, NrOfElements, Listener) ->
+-spec start(
+    NrOfWorkers :: pos_integer(),
+    NrOfMessages :: pos_integer(),
+    NrOfElements :: pos_integer(),
+    Listener :: pid()) -> pid().
+start(NrOfWorkers, NrOfMessages, NrOfElements, Listener) when is_pid(Listener) ->
   State = #state{
     nrOfWorkers = NrOfWorkers,
     nrOfMessages = NrOfMessages,
@@ -34,7 +39,7 @@ loop(State, Pi, NrOfResults) ->
   receive
     calculate ->
       Workers = createWorkers(State#state.nrOfWorkers),
-      broadcastWork(State#state.nrOfElements, 0, State#state.nrOfMessages, Workers, []),
+      broadcastWork(0, State#state.nrOfMessages, Workers, [], State#state.nrOfElements),
       loop(State#state{workers = Workers}, Pi, NrOfResults);
 
     {result, Value} ->
@@ -76,13 +81,15 @@ createWorkers(Remaining, Workers) ->
 createWorker() ->
   worker:start().
 
-broadcastWork(_NrOfElements, NrOfMessages, NrOfMessages, _WorkersUnused, _WorkersUsed) ->
+
+broadcastWork(Max, Max, _WorkersUnused, _WorkersUsed, _NrOfElements) ->
   ok;
-broadcastWork(NrOfElements, I, NrOfMessages, [], WorkersUsed) -> % no more workers, round-robin them and continue
-  broadcastWork(NrOfElements, I, NrOfMessages, lists:reverse(WorkersUsed), []);
-broadcastWork(NrOfElements, I, NrOfMessages, [Worker | Unused], WorkersUsed) ->
+broadcastWork(I, Max, [], WorkersUsed, NrOfElements) -> % no more workers, round-robin them and continue
+  broadcastWork(I, Max, lists:reverse(WorkersUsed), [], NrOfElements);
+broadcastWork(I, Max, [Worker | Unused], WorkersUsed, NrOfElements) ->
   Worker ! {work, self(), I * NrOfElements, NrOfElements},
-  broadcastWork(NrOfElements, I + 1, NrOfMessages, Unused, [Worker | WorkersUsed]).
+  broadcastWork(I + 1, Max, Unused, [Worker | WorkersUsed], NrOfElements).
+
 
 stopWorkers([]) ->
   ok;

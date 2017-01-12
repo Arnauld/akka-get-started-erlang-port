@@ -19,7 +19,7 @@ loop() ->
   receive
     {work, From, Start, NrOfElements} ->
       Approx = calculatePiFor(Start, NrOfElements),
-      io:format("Approx for (~p,~p): ~p~n", [Start, NrOfElements, Approx]),
+%%      io:format("Approx for (~p,~p): ~p~n", [Start, NrOfElements, Approx]),
       From ! {result, Approx},
       loop(); %% recursive call, wait for an other message to process
 
